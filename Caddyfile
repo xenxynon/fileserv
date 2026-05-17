@@ -1,0 +1,43 @@
+# Replace with your actual domain.
+# Caddy will automatically obtain and renew TLS certs via Let's Encrypt.
+#
+# For local/internal use without a domain:
+#   replace "your.domain.com" with "localhost" and Caddy will use a
+#   self-signed cert (add :443 if needed: https://localhost:443)
+
+your.domain.com {
+    # Enable compression
+    encode gzip zstd
+
+    # Security headers (supplement fileserv's own)
+    header {
+        Strict-Transport-Security "max-age=31536000; includeSubDomains; preload"
+        X-Content-Type-Options    "nosniff"
+        X-Frame-Options           "DENY"
+        Referrer-Policy           "strict-origin-when-cross-origin"
+        -Server
+    }
+
+    # Rate-limit login attempts (extra layer on top of app-level limiting)
+    @loginPath path /api/auth/login /api/auth/register
+    rate_limit @loginPath 5r/m
+
+    # Large upload bodies (match MAX_UPLOAD_MB)
+    request_body {
+        max_size 2GB
+    }
+
+    # Proxy everything to fileserv
+    reverse_proxy fileserv:8080 {
+        transport http {
+            # Long timeout for large uploads/downloads/streaming
+            dial_timeout        5s
+            response_header_timeout 0
+            read_buffer         32KB
+            write_buffer        32KB
+        }
+        health_uri      /api/health
+        health_interval 15s
+        health_timeout  3s
+    }
+}

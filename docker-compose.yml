@@ -1,0 +1,73 @@
+version: "3.9"
+
+# ──────────────────────────────────────────────────────────────────────
+# Usage:
+#   cp .env.example .env        # fill in ADMIN_PASS and LINK_SECRET
+#   docker compose up -d
+#
+# With Caddy reverse proxy (recommended for HTTPS):
+#   docker compose --profile caddy up -d
+# ──────────────────────────────────────────────────────────────────────
+
+services:
+  fileserv:
+    build: .
+    container_name: fileserv
+    restart: unless-stopped
+    env_file: .env
+    environment:
+      DATA_DIR: /app/data
+      DOWNLOADS_DIR: /app/data/files
+      COOKIE_SECURE: "${COOKIE_SECURE:-false}"
+    volumes:
+      - fileserv_data:/app/data
+    ports:
+      - "${PORT:-8080}:8080"
+    healthcheck:
+      test: ["CMD", "wget", "-qO-", "http://localhost:8080/api/health"]
+      interval: 30s
+      timeout: 5s
+      retries: 3
+      start_period: 10s
+    networks:
+      - fileserv_net
+    logging:
+      driver: "json-file"
+      options:
+        max-size: "10m"
+        max-file: "3"
+
+  # ── Optional: Caddy reverse proxy with automatic HTTPS ──────────────
+  caddy:
+    image: caddy:2-alpine
+    container_name: fileserv_caddy
+    restart: unless-stopped
+    profiles: [caddy]
+    ports:
+      - "80:80"
+      - "443:443"
+    volumes:
+      - ./Caddyfile:/etc/caddy/Caddyfile:ro
+      - caddy_data:/data
+      - caddy_config:/config
+    depends_on:
+      fileserv:
+        condition: service_healthy
+    networks:
+      - fileserv_net
+    logging:
+      driver: "json-file"
+      options:
+        max-size: "5m"
+
+volumes:
+  fileserv_data:
+    driver: local
+  caddy_data:
+    driver: local
+  caddy_config:
+    driver: local
+
+networks:
+  fileserv_net:
+    driver: bridge

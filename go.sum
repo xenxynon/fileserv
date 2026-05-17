@@ -1,0 +1,6 @@
+// Run `go mod tidy` to generate this file after cloning.
+// The file is intentionally left as a placeholder to keep the archive
+// self-contained.  Run:
+//
+//   go mod tidy
+//   go build ./...
