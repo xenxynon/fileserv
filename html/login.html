@@ -5,102 +5,83 @@
 <meta name="viewport" content="width=device-width,initial-scale=1">
 <title>fileserv</title>
 <link rel="preconnect" href="https://fonts.googleapis.com">
-<link href="https://fonts.googleapis.com/css2?family=IBM+Plex+Mono:wght@400;500&family=IBM+Plex+Sans:wght@400;500;600&display=swap" rel="stylesheet">
+<link href="https://fonts.googleapis.com/css2?family=JetBrains+Mono:ital,wght@0,300;0,400;0,500;0,600;1,300&family=DM+Sans:wght@300;400;500&display=swap" rel="stylesheet">
 <link rel="stylesheet" href="/static/style.css">
 <style>
-body { display:flex; align-items:center; justify-content:center; min-height:100vh; padding:32px; }
-.login-wrap { width:100%; max-width:340px; }
-.login-wordmark { font-family:'IBM Plex Mono',monospace; font-size:18px; font-weight:500; color:var(--text); letter-spacing:-.02em; margin-bottom:8px; }
-.login-wordmark span { color:var(--accent); }
-.login-sub { font-size:13px; color:var(--muted); margin-bottom:24px; }
-.tabs { display:flex; gap:2px; margin-bottom:20px; }
-.tab { flex:1; height:30px; border-radius:6px; background:transparent; border:1px solid var(--border); color:var(--sub); font-family:'IBM Plex Mono',monospace; font-size:11px; font-weight:500; cursor:pointer; transition:all .12s; }
-.tab.on { background:var(--surface); border-color:var(--border-strong); color:var(--text); }
-.tab:hover:not(.on) { border-color:var(--border-strong); color:var(--text); }
-.form-pane { display:none; }
-.form-pane.on { display:block; }
-.field-label { font-size:11px; font-weight:500; letter-spacing:.06em; text-transform:uppercase; color:var(--muted); margin-bottom:6px; display:block; font-family:'IBM Plex Mono',monospace; }
-.field-input { width:100%; height:44px; background:var(--surface); border:1px solid var(--border); border-radius:8px; color:var(--text); font-family:'IBM Plex Mono',monospace; font-size:14px; padding:0 14px; outline:none; transition:border-color .12s; -webkit-appearance:none; letter-spacing:.04em; margin-bottom:12px; }
-.field-input:focus { border-color:var(--accent); }
-.field-input::placeholder { color:var(--muted); letter-spacing:normal; font-family:'IBM Plex Sans',sans-serif; }
-.submit-btn { width:100%; height:44px; margin-top:4px; background:var(--accent); color:#fff; border:none; border-radius:8px; font-family:'IBM Plex Sans',sans-serif; font-size:13px; font-weight:600; cursor:pointer; transition:opacity .12s,transform .1s; letter-spacing:.01em; }
-.submit-btn:hover { opacity:.88; }
-.submit-btn:active { transform:scale(.98); }
-.error { font-size:12px; color:var(--red); margin-top:10px; padding:10px 12px; border:1px solid color-mix(in srgb,var(--red) 30%,transparent); border-radius:6px; background:color-mix(in srgb,var(--red) 6%,transparent); font-family:'IBM Plex Mono',monospace; }
-.login-footer { margin-top:20px; display:flex; align-items:center; justify-content:space-between; }
-.footer-hint { font-size:11px; color:var(--muted); font-family:'IBM Plex Mono',monospace; min-height:16px; }
-.theme-toggle { background:none; border:1px solid var(--border); color:var(--sub); width:30px; height:30px; border-radius:6px; cursor:pointer; display:flex; align-items:center; justify-content:center; font-size:12px; transition:border-color .1s,color .1s; }
-.theme-toggle:hover { border-color:var(--border-strong); color:var(--text); }
+html,body{min-height:100vh;background:var(--bg);color:var(--text);font-family:var(--sans,'DM Sans',sans-serif);-webkit-font-smoothing:antialiased;}
+body{display:flex;align-items:center;justify-content:center;padding:24px;position:relative;overflow:hidden;}
+body::before{content:'';position:fixed;inset:0;background-image:linear-gradient(var(--border-faint) 1px,transparent 1px),linear-gradient(90deg,var(--border-faint) 1px,transparent 1px);background-size:40px 40px;pointer-events:none;opacity:.55;}
+body::after{content:'';position:fixed;inset:0;background:radial-gradient(ellipse 80% 80% at 50% 50%,transparent 20%,var(--bg) 100%);pointer-events:none;}
+.wrap{width:100%;max-width:310px;position:relative;z-index:1;animation:up .28s ease both;}
+@keyframes up{from{opacity:0;transform:translateY(8px)}to{opacity:1;transform:none}}
+.wm{font-family:'JetBrains Mono',monospace;font-size:14px;font-weight:600;color:var(--text);margin-bottom:3px;display:flex;align-items:center;gap:1px;letter-spacing:-.01em}
+.wm-accent{color:var(--accent)}
+.wm-sub{font-family:'JetBrains Mono',monospace;font-size:10px;color:var(--muted);margin-bottom:22px;font-weight:300;letter-spacing:.01em}
+.card{background:var(--surface);border:1px solid var(--border);border-radius:var(--radius,4px);padding:18px}
+.tabs{display:flex;gap:1px;margin-bottom:16px;background:var(--border-faint);border-radius:3px;padding:2px}
+.tab{flex:1;height:24px;border-radius:2px;background:transparent;border:none;color:var(--muted);font-family:'JetBrains Mono',monospace;font-size:10px;font-weight:500;cursor:pointer;transition:all .14s;letter-spacing:.05em;text-transform:uppercase}
+.tab.on{background:var(--surface-2);color:var(--text)}
+.tab:hover:not(.on){color:var(--sub)}
+.pane{display:none}.pane.on{display:block}
+.lbl{display:block;font-family:'JetBrains Mono',monospace;font-size:9px;font-weight:500;letter-spacing:.08em;text-transform:uppercase;color:var(--muted);margin-bottom:5px}
+.inp{width:100%;height:36px;background:var(--surface-2);border:1px solid var(--border);border-radius:3px;color:var(--text);font-family:'JetBrains Mono',monospace;font-size:13px;padding:0 10px;outline:none;transition:border-color .12s,background .12s;-webkit-appearance:none;letter-spacing:.02em;margin-bottom:11px}
+.inp:focus{border-color:var(--accent);background:var(--surface-3)}
+.inp::placeholder{color:var(--muted);font-weight:300;font-family:'DM Sans',sans-serif;letter-spacing:normal}
+.btn{width:100%;height:36px;margin-top:2px;background:var(--accent);color:#fff;border:none;border-radius:3px;font-family:'DM Sans',sans-serif;font-size:13px;font-weight:500;cursor:pointer;transition:opacity .12s,transform .1s}
+.btn:hover{opacity:.88}.btn:active{transform:scale(.98)}
+.err{font-size:11px;color:var(--red);margin-top:10px;padding:8px 10px;border:1px solid color-mix(in srgb,var(--red) 22%,transparent);border-radius:3px;background:color-mix(in srgb,var(--red) 5%,transparent);font-family:'JetBrains Mono',monospace}
+.foot{margin-top:12px;display:flex;align-items:center;justify-content:space-between}
+.hint{font-size:10px;color:var(--muted);font-family:'JetBrains Mono',monospace;min-height:14px;font-weight:300;transition:color .3s,opacity .3s}
+.hint.on{color:var(--sub)}
+.tog{background:none;border:1px solid var(--border);color:var(--sub);width:26px;height:26px;border-radius:3px;cursor:pointer;display:flex;align-items:center;justify-content:center;font-size:11px;transition:border-color .1s,color .1s;font-family:'JetBrains Mono',monospace}
+.tog:hover{border-color:var(--border-strong);color:var(--text)}
 </style>
 </head>
 <body>
-<div class="login-wrap">
-  <div class="login-wordmark">file<span>serv</span></div>
-  <p class="login-sub" id="sub-text">Sign in to continue</p>
-
-  <div class="tabs">
-    <button class="tab on" onclick="switchTab('login')">Sign in</button>
-    <button class="tab" id="reg-tab" onclick="switchTab('register')">Register</button>
+<div class="wrap">
+  <div class="wm">file<span class="wm-accent">.</span>serv</div>
+  <div class="wm-sub" id="sub">authenticate to continue</div>
+  <div class="card">
+    <div class="tabs">
+      <button class="tab on" onclick="sw('login')">sign in</button>
+      <button class="tab" id="reg-tab" onclick="sw('register')">register</button>
+    </div>
+    <div class="pane on" id="pane-login">
+      <form method="POST" action="/login">
+        <label class="lbl" for="lu">username</label>
+        <input class="inp" id="lu" type="text" name="username" autofocus autocomplete="username" placeholder="username">
+        <label class="lbl" for="lp">password</label>
+        <input class="inp" id="lp" type="password" name="pass" autocomplete="current-password" placeholder="••••••••">
+        <button class="btn" type="submit">continue →</button>
+        {{error}}
+      </form>
+    </div>
+    <div class="pane" id="pane-register">
+      <form method="POST" action="/register">
+        <label class="lbl" for="ru">username</label>
+        <input class="inp" id="ru" type="text" name="username" autocomplete="username" placeholder="pick a username">
+        <label class="lbl" for="rp">password</label>
+        <input class="inp" id="rp" type="password" name="pass" autocomplete="new-password" placeholder="min 6 characters">
+        <button class="btn" type="submit">create account →</button>
+      </form>
+    </div>
   </div>
-
-  <!-- Sign in -->
-  <div class="form-pane on" id="pane-login">
-    <form method="POST" action="/login">
-      <label class="field-label" for="login-user">Username</label>
-      <input class="field-input" id="login-user" type="text" name="username"
-             autofocus autocomplete="username" placeholder="username">
-      <label class="field-label" for="login-pw">Password</label>
-      <input class="field-input" id="login-pw" type="password" name="pass"
-             autocomplete="current-password" placeholder="••••••••">
-      <button class="submit-btn" type="submit">Continue →</button>
-      {{error}}
-    </form>
-  </div>
-
-  <!-- Register -->
-  <div class="form-pane" id="pane-register">
-    <form method="POST" action="/register">
-      <label class="field-label" for="reg-user">Username</label>
-      <input class="field-input" id="reg-user" type="text" name="username"
-             autocomplete="username" placeholder="pick a username">
-      <label class="field-label" for="reg-pw">Password</label>
-      <input class="field-input" id="reg-pw" type="password" name="pass"
-             autocomplete="new-password" placeholder="≥ 6 characters">
-      <button class="submit-btn" type="submit">Create account →</button>
-    </form>
-  </div>
-
-  <div class="login-footer">
-    <span class="footer-hint" id="hint"></span>
-    <button class="theme-toggle" onclick="toggleTheme()" title="Toggle theme" id="theme-btn">◐</button>
+  <div class="foot">
+    <span class="hint" id="hint"></span>
+    <button class="tog" onclick="toggleTheme()" title="Toggle theme">◐</button>
   </div>
 </div>
-
 <script src="/static/theme.js"></script>
 <script>
-// Check if registration is allowed
-fetch('/session').then(r=>r.json()).then(s=>{
-  if(s.registration_open===false){
-    document.getElementById('reg-tab').style.display='none';
-  }
-}).catch(()=>{});
-
-function switchTab(t) {
-  ['login','register'].forEach(id=>{
-    document.getElementById('pane-'+id).classList.toggle('on',id===t);
-    document.querySelector(`.tab:nth-child(${id==='login'?1:2})`).classList.toggle('on',id===t);
-  });
-  document.getElementById('sub-text').textContent = t==='login'?'Sign in to continue':'Create an account';
-}
-
-const HINTS = ["it's not '1234'","knock knock...","the server is judging you","brute force not recommended","what's the magic word?"];
-const hint = document.getElementById('hint');
-let shown=false, idleTimer;
-function showHint(){ if(shown)return;shown=true;hint.textContent=HINTS[Math.floor(Math.random()*HINTS.length)];setTimeout(()=>{hint.textContent='';shown=false;resetIdle();},5000); }
-function resetIdle(){ clearTimeout(idleTimer);idleTimer=setTimeout(showHint,8000); }
+fetch('/session').then(r=>r.json()).then(s=>{if(s.registration_open===false)document.getElementById('reg-tab').style.display='none';}).catch(()=>{});
+function sw(t){['login','register'].forEach(id=>{document.getElementById('pane-'+id).classList.toggle('on',id===t);document.querySelector(`.tab:nth-child(${id==='login'?1:2})`).classList.toggle('on',id===t);});document.getElementById('sub').textContent=t==='login'?'authenticate to continue':'create an account';}
+const HINTS=[["try 'password123' — classic","knock knock...","ls: access denied","the server is judging you","sudo login? nope.","chmod 000 your expectations","are you even supposed to be here?","/dev/null called","what's the magic word?","nice try, human","error 418: you're a teapot","segfault in your social life","have you tried turning off your brain?"],["nope.","still no.","bro.","nice try lol","have you tried turning yourself off?","access denied (skill issue)","wrong. devastatingly wrong."]];
+const hint=document.getElementById('hint');let shown=false,itimer;
+function showHint(pool){if(shown)return;shown=true;const arr=pool||HINTS[0];hint.textContent=arr[Math.floor(Math.random()*arr.length)];hint.classList.add('on');setTimeout(()=>{hint.classList.remove('on');setTimeout(()=>{hint.textContent='';shown=false;resetIdle();},350);},6000);}
+function resetIdle(){clearTimeout(itimer);itimer=setTimeout(()=>showHint(),10000);}
 document.addEventListener('mousemove',resetIdle);document.addEventListener('keydown',resetIdle);resetIdle();
-let wrongCount=parseInt(sessionStorage.getItem('wc')||'0');
-if(document.querySelector('.error')){ wrongCount++;sessionStorage.setItem('wc',wrongCount);if(wrongCount>=3)hint.textContent='three strikes...';if(wrongCount>=5)hint.textContent='just text them instead'; }
+let wc=parseInt(sessionStorage.getItem('wc')||'0');
+if(document.querySelector('.err')){wc++;sessionStorage.setItem('wc',wc);if(wc>=2)setTimeout(()=>showHint(HINTS[1]),400);}
 </script>
 </body>
 </html>
