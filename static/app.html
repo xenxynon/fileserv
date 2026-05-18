@@ -6,6 +6,7 @@
 <title>fileserv</title>
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link href="https://fonts.googleapis.com/css2?family=Syne:wght@400;500;600;700&family=JetBrains+Mono:wght@300;400;500;600&display=swap" rel="stylesheet">
+<script src="https://cdnjs.cloudflare.com/ajax/libs/hls.js/1.5.7/hls.min.js"></script>
 <style>
 /* ═══════════════════════════════════════════════════════════════════════
    TOKENS
@@ -810,6 +811,20 @@ a{color:inherit;text-decoration:none}
   #upload-panel{width:100%}
   .preview-box{max-width:100vw;max-height:100vh;border-radius:0}
   #breadcrumb{display:none}
+  /* Navbar: hide brand text + sep to free space for search */
+  .nav-brand-text{display:none}
+  .nav-sep{display:none}
+  .search-shortcut{display:none}
+  #search{font-size:13px}
+  /* Touch-friendly targets */
+  .nav-btn{width:36px;height:36px}
+  #user-btn{width:36px;height:36px}
+  .more-btn{width:36px;height:44px;font-size:18px}
+  /* Preview header wraps on small screens */
+  .preview-head{flex-wrap:wrap;padding:8px 10px;gap:6px}
+  .preview-name{min-width:100%;order:-1}
+  .preview-actions .btn{height:38px;padding:0 14px;font-size:13px}
+  .preview-actions .modal-close{width:38px;height:38px}
 }
 @media(max-width:400px){.btn span{display:none}}
 </style>
@@ -878,7 +893,7 @@ a{color:inherit;text-decoration:none}
       <div class="nav-brand-icon">
         <svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round"><path d="M22 19a2 2 0 0 1-2 2H4a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h5l2 3h9a2 2 0 0 1 2 2z"/></svg>
       </div>
-      fileserv
+      <span class="nav-brand-text">fileserv</span>
     </div>
     <div class="nav-sep"></div>
     <div id="breadcrumb"></div>
@@ -1386,9 +1401,7 @@ function render(){
     const row=makeRow(`<div class="fname-cell"><div class="file-icon ${cls}">${lbl}</div><div class="finfo"><div class="fname" title="${esc(f.name)}">${esc(f.name)}</div><div class="fmeta"><span>.${esc(gext(f.name)||'—')}</span>${ownerTag}</div><div class="fmeta-mobile" style="display:none">${fsize(f.size)} · ${fdate(f.mtime)}</div></div></div><div class="fsize">${fsize(f.size)}</div><div class="fdate">${fdate(f.mtime)}</div><div class="row-actions"><button class="more-btn">⋯</button></div>`);
     row.addEventListener('click',e=>{
       if(e.target.closest('.more-btn'))return;
-      const cat=catFor(f.name);
-      if(['image','video','audio','doc'].includes(cat)||gext(f.name)==='pdf')openPreview(f.rel,f.name,f);
-      else dlFile(f.rel,f.name);
+      openPreview(f.rel,f.name,f);
     });
     row.querySelector('.more-btn').addEventListener('click',e=>{e.stopPropagation();showCtx(e,fileCtx(f),e.currentTarget)});
     row.addEventListener('contextmenu',e=>showCtx(e,fileCtx(f)));
@@ -1549,10 +1562,16 @@ function dlFile(rel,name){
 async function copyLink(rel){
   try{
     const r=await api('GET','/api/files/token/'+encRel(rel));
-    if(!r.ok)throw new Error(r.error);
-    await navigator.clipboard.writeText(location.origin+r.data.url);
-    toast('Link copied to clipboard');
-  }catch(e){toastErr('Could not copy link: '+e.message)}
+    if(r.ok&&r.data?.url){
+      await navigator.clipboard.writeText(location.origin+r.data.url);
+      toast('Link copied');return;
+    }
+  }catch{}
+  // Fallback: direct preview URL (requires login)
+  try{
+    await navigator.clipboard.writeText(location.origin+'/preview/'+encRel(rel));
+    toast('Direct link copied (login required)');
+  }catch(e){toastErr('Could not copy: '+e.message)}
 }
 function zipFolder(rel,name){
   const a=document.createElement('a');
@@ -1689,7 +1708,7 @@ function openPreview(rel,name,f){
   if(cat==='image'){
     body.innerHTML=`<img src="${url}" alt="${esc(name)}" style="max-height:82vh;object-fit:contain">`;
   } else if(cat==='video'){
-    body.innerHTML=`<video src="${url}" controls preload="metadata" style="max-width:88vw;max-height:80vh"></video>`;
+    buildVideoPlayer(body,url,rel,name);
   } else if(cat==='audio'){
     buildAudioPlayer(body,url,name);
   } else if(gext(name)==='pdf'){
@@ -1706,11 +1725,43 @@ function openPreview(rel,name,f){
 function closePreview(){
   const body=document.getElementById('preview-body');
   const aud=body.querySelector('audio');if(aud){aud.pause();aud.src=''}
+  const vid=body.querySelector('video');if(vid?._hls){vid._hls.destroy();vid._hls=null}
   document.getElementById('preview-modal').classList.remove('open');
   body.innerHTML='';_prevRel=null;_prevName=null;
 }
 function dlCurrent(){if(_prevRel)dlFile(_prevRel,_prevName||_prevRel.split('/').pop())}
 async function copyLinkCurrent(){if(_prevRel)await copyLink(_prevRel)}
+function buildVideoPlayer(body,url,rel,name){
+  const ext=gext(name);
+  const hlsUrl='/hls/'+encRel(rel)+'/index.m3u8';
+  const needsHls=new Set('mkv avi mov flv ts m4v'.split(' '));
+  body.innerHTML=`<video id="pv-vid" controls preload="metadata" style="max-width:88vw;max-height:80vh;display:block"></video>`;
+  const vid=document.getElementById('pv-vid');
+
+  function tryHls(){
+    if(!window.Hls||!Hls.isSupported()){showVidErr(rel,name);return}
+    const hls=new Hls({enableWorker:true,lowLatencyMode:false});
+    hls.loadSource(hlsUrl);
+    hls.attachMedia(vid);
+    hls.on(Hls.Events.MANIFEST_PARSED,()=>vid.play().catch(()=>{}));
+    hls.on(Hls.Events.ERROR,(_,d)=>{if(d.fatal){hls.destroy();showVidErr(rel,name)}});
+    vid._hls=hls;
+  }
+
+  if(needsHls.has(ext)){
+    tryHls();
+  }else{
+    vid.src=url;
+    vid.onerror=()=>tryHls();
+  }
+}
+function showVidErr(rel,name){
+  const body=document.getElementById('preview-body');if(!body)return;
+  const vlc='vlc://'+location.origin+'/preview/'+encRel(rel);
+  const div=document.createElement('div');div.className='preview-unsupported';
+  div.innerHTML=`<div class="pv-badge fi-vid" style="font-size:22px">▶</div><div class="pv-name">${esc(name)}</div><div class="pv-meta">Browser can't play this — try VLC or download</div><div class="pv-actions"><a class="btn btn-primary" href="${vlc}">${I.preview} <span>Open in VLC</span></a><a class="btn btn-ghost" href="/dl/${encRel(rel)}" download="${esc(name)}">${I.download} <span>Download</span></a><button class="btn btn-ghost" onclick="copyLinkCurrent()">${I.link} <span>Copy link</span></button></div>`;
+  body.innerHTML='';body.appendChild(div);
+}
 function buildAudioPlayer(body,url,name){
   const wrap=document.createElement('div');wrap.className='aup';
   wrap.innerHTML=`<div class="aup-disc" id="aup-disc">♪</div><div class="aup-title">${esc(name)}</div><div class="aup-timeline"><input type="range" class="aup-seek" id="aup-seek" value="0" min="0" max="100" step="0.1"><div class="aup-times"><span id="aup-cur">0:00</span><span id="aup-dur">—</span></div></div><div class="aup-controls"><button class="aup-play" id="aup-play">▶</button><div class="aup-vol-row"><svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><polygon points="11 5 6 9 2 9 2 15 6 15 11 19 11 5"/></svg><input type="range" class="aup-vol" id="aup-vol" value="1" min="0" max="1" step="0.01"></div></div>`;
