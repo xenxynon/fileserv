@@ -70,7 +70,15 @@ func (h *Handlers) ensureAdmin() {
 // ─── Static ───────────────────────────────────────────────────────────────────
 
 func (h *Handlers) ServeApp(w http.ResponseWriter, r *http.Request) {
-	http.ServeFileFS(w, r, appFS, "static/app.html")
+	f, err := staticFS.Open("static/app.html")
+	if err != nil {
+		http.Error(w, "not found: "+err.Error(), 500)
+		return
+	}
+	defer f.Close()
+	data, _ := io.ReadAll(f)
+	w.Header().Set("Content-Type", "text/html; charset=utf-8")
+	w.Write(data)
 }
 
 // ─── Auth ─────────────────────────────────────────────────────────────────────

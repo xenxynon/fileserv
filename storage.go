@@ -244,7 +244,7 @@ var extCategories = map[string]string{
 	"ogg": "audio", "m4a": "audio", "opus": "audio",
 	"txt": "doc", "md": "doc", "log": "doc", "json": "doc", "xml": "doc",
 	"yaml": "doc", "yml": "doc", "toml": "doc", "cfg": "doc", "py": "doc",
-	"js": "doc", "ts": "doc", "html": "doc", "css": "doc", "pdf": "doc",
+	"js": "doc", "html": "doc", "css": "doc", "pdf": "doc",
 	"csv": "doc", "sh": "doc", "go": "doc", "rs": "doc",
 }
 
